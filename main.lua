@@ -1,5 +1,5 @@
 local GUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Rayonad/dima/refs/heads/master/gui.lua"))()
-local TestModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Rayonad/dima/refs/heads/master/test.lua"))()
+local NapeModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Rayonad/dima/refs/heads/master/nape.lua"))()
 
 GUI:AddModule("Test", function(enabled)
     if enabled then
