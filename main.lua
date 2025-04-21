@@ -1,10 +1,10 @@
--- Загружаем GUI
 local GUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Rayonad/dima/refs/heads/master/gui.lua"))()
+local TestModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Rayonad/dima/refs/heads/master/test.lua"))()
 
--- Загружаем модуль Nape
-local Nape = loadstring(game:HttpGet("https://raw.githubusercontent.com/Rayonad/dima/refs/heads/master/nape.lua"))()
-
--- Добавляем модуль в GUI
-GUI:AddModule("Nape", Nape)
-
-print("Nape модуль успешно интегрирован в меню!")
+GUI:AddModule("Test", function(enabled)
+    if enabled then
+        TestModule.start()
+    else
+        TestModule.stop()
+    end
+end)&#8203;:contentReference[oaicite:7]{index=7}
