@@ -1,187 +1,193 @@
--- Titan Hack Menu for Roblox
--- Инжектится через executor
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local UserInput = game:GetService("UserInputService")
 
---[[
-    Структура скрипта:
-    1. Настройки стиля и цвета
-    2. Создание главного окна
-    3. Добавление функций (чекбоксов)
-    4. Логика включения/выключения функций
-    5. Вспомогательные функции
-]]
-
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local NapeModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Rayonad/dima/refs/heads/master/nape.lua"))()
-
--- ========== НАСТРОЙКИ СТИЛЯ ==========
-local Settings = {
-    MainColor = Color3.fromRGB(40, 40, 40),
-    SecondaryColor = Color3.fromRGB(30, 30, 30),
-    AccentColor = Color3.fromRGB(138, 43, 226),
+--== НАСТРОЙКИ ==--
+local SETTINGS = {
+    ESP = true,
+    FreezeTitans = false,
+    LongSword = false,  -- Увеличенная дальность атаки
+    NapeSize = false,   -- Увеличение хитбоксов шеи
     TextColor = Color3.fromRGB(255, 255, 255),
-    TextSize = 14,
-    Font = Enum.Font.Gotham,
-    ToggleColor = Color3.fromRGB(76, 209, 55),
-    WindowSize = Vector2.new(300, 400),
-    Padding = 10
+    TextSize = 18,
+    MenuKey = Enum.KeyCode.RightShift  -- Только открытие/закрытие меню
 }
 
--- ========== СОЗДАНИЕ ГЛАВНОГО ОКНА ==========
-local library = {
-    toggles = {}
-}
+--== 3D ESP ==--
+local ESPObjects = {}
 
-local ScreenGui = Instance.new("ScreenGui")
-if syn and syn.protect_gui then
-    syn.protect_gui(ScreenGui)
+local function Create3DESP(titan)
+    if not titan:FindFirstChild("HumanoidRootPart") then return end
+    
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "ESP_"..titan.Name
+    billboard.Adornee = titan.HumanoidRootPart
+    billboard.Size = UDim2.new(0, 200, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.LightInfluence = 0
+    billboard.MaxDistance = 500
+    
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Text = titan.Name
+    textLabel.Size = UDim2.new(1, 0, 1, 0)
+    textLabel.Font = Enum.Font.SourceSansBold
+    textLabel.TextColor3 = SETTINGS.TextColor
+    textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
+    textLabel.TextStrokeTransparency = 0
+    textLabel.BackgroundTransparency = 1
+    textLabel.Parent = billboard
+    
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "ESP_Highlight"
+    highlight.FillTransparency = 0.8
+    highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+    highlight.OutlineTransparency = 0
+    highlight.Adornee = titan
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    
+    billboard.Parent = titan.HumanoidRootPart
+    highlight.Parent = titan
+    
+    return {Billboard = billboard, Highlight = highlight}
 end
-ScreenGui.Parent = game.CoreGui
+
+local function ToggleESP(state)
+    SETTINGS.ESP = state
+    
+    if state then
+        for _, titan in ipairs(workspace.Titans:GetDescendants()) do
+            if titan:IsA("Model") and titan:FindFirstChild("HumanoidRootPart") then
+                ESPObjects[titan] = Create3DESP(titan)
+            end
+        end
+    else
+        for titan, esp in pairs(ESPObjects) do
+            if esp.Billboard then esp.Billboard:Destroy() end
+            if esp.Highlight then esp.Highlight:Destroy() end
+        end
+        ESPObjects = {}
+    end
+end
+
+--== Freeze Titans ==--
+local function ToggleFreeze(state)
+    for _, titan in ipairs(workspace.Titans:GetDescendants()) do
+        if titan:IsA("Model") and titan:FindFirstChild("HumanoidRootPart") then
+            titan.HumanoidRootPart.Massless = state
+        end
+    end
+end
+
+
+--== Nape Size (Увеличение хитбоксов шеи) ==--
+local function ToggleNapeSize(state)
+    SETTINGS.NapeSize = state
+    
+    for _, titan in ipairs(workspace.Titans:GetDescendants()) do
+        if titan:IsA("Model") and titan:FindFirstChild("HitBoxes") then
+            local nape = titan.HitBoxes.Hit:FindFirstChild("Nape")
+            if nape then
+                nape.Size = state and Vector3.new(2048, 2048, 2048) or Vector3.new(15, 15, 15)  -- Стандартный размер (15)
+            end
+        end
+    end
+end
+
+--== GUI МЕНЮ ==--
+local menuVisible = false
+local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "TitanHackMenu"
+ScreenGui.Parent = game:GetService("CoreGui")
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, Settings.WindowSize.X, 0, Settings.WindowSize.Y)
-MainFrame.Position = UDim2.new(0.5, -Settings.WindowSize.X/2, 0.5, -Settings.WindowSize.Y/2)
-MainFrame.BackgroundColor3 = Settings.MainColor
-MainFrame.BorderSizePixel = 0
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Parent = ScreenGui
-
-local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0, 6)
-Corner.Parent = MainFrame
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0.2, 0, 0.35, 0)
+Frame.Position = UDim2.new(0.05, 0, 0.6, 0)
+Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Frame.BackgroundTransparency = 0.5
+Frame.BorderSizePixel = 0
+Frame.Visible = false
+Frame.Parent = ScreenGui
 
 local Title = Instance.new("TextLabel")
-Title.Name = "Title"
-Title.Text = "Titan Hack"
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Position = UDim2.new(0, 0, 0, 0)
-Title.BackgroundColor3 = Settings.SecondaryColor
-Title.TextColor3 = Settings.AccentColor
-Title.TextSize = 20
-Title.Font = Settings.Font
-Title.Parent = MainFrame
+Title.Text = "Titan Hacks v3.0"
+Title.Size = UDim2.new(1, 0, 0.1, 0)
+Title.Font = Enum.Font.SourceSansBold
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.BackgroundTransparency = 1
+Title.Parent = Frame
 
-local TitleCorner = Instance.new("UICorner")
-TitleCorner.CornerRadius = UDim.new(0, 6)
-TitleCorner.Parent = Title
+local ESPToggle = Instance.new("TextButton")
+ESPToggle.Text = "ESP: " .. (SETTINGS.ESP and "ON" or "OFF")
+ESPToggle.Size = UDim2.new(0.9, 0, 0.12, 0)
+ESPToggle.Position = UDim2.new(0.05, 0, 0.15, 0)
+ESPToggle.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+ESPToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+ESPToggle.Parent = Frame
 
-local FunctionsFrame = Instance.new("Frame")
-FunctionsFrame.Name = "FunctionsFrame"
-FunctionsFrame.Size = UDim2.new(1, -Settings.Padding*2, 1, -60 - Settings.Padding)
-FunctionsFrame.Position = UDim2.new(0, Settings.Padding, 0, 50)
-FunctionsFrame.BackgroundTransparency = 1
-FunctionsFrame.Parent = MainFrame
+local FreezeToggle = Instance.new("TextButton")
+FreezeToggle.Text = "Freeze Titans: " .. (SETTINGS.FreezeTitans and "ON" or "OFF")
+FreezeToggle.Size = UDim2.new(0.9, 0, 0.12, 0)
+FreezeToggle.Position = UDim2.new(0.05, 0, 0.3, 0)
+FreezeToggle.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+FreezeToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+FreezeToggle.Parent = Frame
 
-local UIListLayout = Instance.new("UIListLayout")
-UIListLayout.Padding = UDim.new(0, 10)
-UIListLayout.Parent = FunctionsFrame
 
--- ========== ФУНКЦИИ МЕНЮ ==========
-local function CreateToggle(name, description)
-    local ToggleFrame = Instance.new("Frame")
-    ToggleFrame.Name = name .. "Toggle"
-    ToggleFrame.Size = UDim2.new(1, 0, 0, 30)
-    ToggleFrame.BackgroundTransparency = 1
-    ToggleFrame.Parent = FunctionsFrame
+local NapeSizeToggle = Instance.new("TextButton")
+NapeSizeToggle.Text = "Nape Size: " .. (SETTINGS.NapeSize and "ON" or "OFF")
+NapeSizeToggle.Size = UDim2.new(0.9, 0, 0.12, 0)
+NapeSizeToggle.Position = UDim2.new(0.05, 0, 0.6, 0)
+NapeSizeToggle.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+NapeSizeToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+NapeSizeToggle.Parent = Frame
 
-    local ToggleButton = Instance.new("TextButton")
-    ToggleButton.Name = "ToggleButton"
-    ToggleButton.Size = UDim2.new(1, 0, 1, 0)
-    ToggleButton.BackgroundTransparency = 1
-    ToggleButton.Text = ""
-    ToggleButton.Parent = ToggleFrame
+--== Обработчики кнопок ==--
+ESPToggle.MouseButton1Click:Connect(function()
+    SETTINGS.ESP = not SETTINGS.ESP
+    ESPToggle.Text = "ESP: " .. (SETTINGS.ESP and "ON" or "OFF")
+    ToggleESP(SETTINGS.ESP)
+end)
 
-    local ToggleText = Instance.new("TextLabel")
-    ToggleText.Name = "ToggleText"
-    ToggleText.Size = UDim2.new(0.7, 0, 1, 0)
-    ToggleText.Position = UDim2.new(0, 0, 0, 0)
-    ToggleText.BackgroundTransparency = 1
-    ToggleText.Text = name
-    ToggleText.TextColor3 = Settings.TextColor
-    ToggleText.TextSize = Settings.TextSize
-    ToggleText.TextXAlignment = Enum.TextXAlignment.Left
-    ToggleText.Font = Settings.Font
-    ToggleText.Parent = ToggleFrame
+FreezeToggle.MouseButton1Click:Connect(function()
+    SETTINGS.FreezeTitans = not SETTINGS.FreezeTitans
+    FreezeToggle.Text = "Freeze Titans: " .. (SETTINGS.FreezeTitans and "ON" or "OFF")
+    ToggleFreeze(SETTINGS.FreezeTitans)
+end)
 
-    if description then
-        ToggleText.Text = name .. " (" .. description .. ")"
-    end
+NapeSizeToggle.MouseButton1Click:Connect(function()
+    SETTINGS.NapeSize = not SETTINGS.NapeSize
+    NapeSizeToggle.Text = "Nape Size: " .. (SETTINGS.NapeSize and "ON" or "OFF")
+    ToggleNapeSize(SETTINGS.NapeSize)
+end)
 
-    local ToggleBox = Instance.new("Frame")
-    ToggleBox.Name = "ToggleBox"
-    ToggleBox.Size = UDim2.new(0, 20, 0, 20)
-    ToggleBox.Position = UDim2.new(1, -25, 0.5, -10)
-    ToggleBox.BackgroundColor3 = Settings.SecondaryColor
-    ToggleBox.BorderSizePixel = 0
-    ToggleBox.Parent = ToggleFrame
-
-    local ToggleBoxCorner = Instance.new("UICorner")
-    ToggleBoxCorner.CornerRadius = UDim.new(0, 4)
-    ToggleBoxCorner.Parent = ToggleBox
-
-    local ToggleState = Instance.new("Frame")
-    ToggleState.Name = "ToggleState"
-    ToggleState.Size = UDim2.new(0, 16, 0, 16)
-    ToggleState.Position = UDim2.new(0.5, -8, 0.5, -8)
-    ToggleState.BackgroundColor3 = Settings.SecondaryColor
-    ToggleState.BorderSizePixel = 0
-    ToggleState.Parent = ToggleBox
-
-    local ToggleStateCorner = Instance.new("UICorner")
-    ToggleStateCorner.CornerRadius = UDim.new(0, 4)
-    ToggleStateCorner.Parent = ToggleState
-
-    local toggle = {
-        enabled = false,
-        frame = ToggleFrame,
-        box = ToggleBox,
-        state = ToggleState,
-        callback = nil
-    }
-
-    library.toggles[name] = toggle
-
-    local function UpdateToggle()
-        if toggle.enabled then
-            toggle.state.BackgroundColor3 = Settings.ToggleColor
-            ToggleText.TextColor3 = Settings.AccentColor
-        else
-            toggle.state.BackgroundColor3 = Settings.SecondaryColor
-            ToggleText.TextColor3 = Settings.TextColor
-        end
-    end
-
-    ToggleButton.MouseButton1Click:Connect(function()
-        toggle.enabled = not toggle.enabled
-        UpdateToggle()
-        if toggle.callback then
-            toggle.callback(toggle.enabled)
-        end
-    end)
-
-    UpdateToggle()
-    return toggle
-end
-
--- ========== ДОБАВЛЕНИЕ ФУНКЦИЙ ==========
-CreateToggle("Nape") callback = function(enabled)
-    NapeModule.Toggle(enabled) -- Это вызовет функцию из nape.lua
-end
-
-CreateToggle("Aim", "Авто-наведение")
-CreateToggle("Safe", "Обход античита")
-CreateToggle("ESP", "Видеть игроков")
-
--- ========== ЗАКРЫТИЕ МЕНЮ ==========
-local closed = false
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if input.KeyCode == Enum.KeyCode.RightShift then
-        closed = not closed
-        MainFrame.Visible = not closed
+--== Открытие/закрытие меню ==--
+UserInput.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == SETTINGS.MenuKey then
+        menuVisible = not menuVisible
+        Frame.Visible = menuVisible
     end
 end)
 
-return library
+--== Автоматическое обновление ESP и хитбоксов ==--
+workspace.Titans.DescendantAdded:Connect(function(titan)
+    if titan:IsA("Model") and titan:FindFirstChild("HumanoidRootPart") then
+        if SETTINGS.ESP then
+            ESPObjects[titan] = Create3DESP(titan)
+        end
+        if SETTINGS.FreezeTitans then
+            titan.HumanoidRootPart.Massless = true
+        end
+        if SETTINGS.NapeSize and titan:FindFirstChild("HitBoxes") then
+            local nape = titan.HitBoxes.Hit:FindFirstChild("Nape")
+            if nape then
+                nape.Size = Vector3.new(2048, 2048, 2048)
+            end
+        end
+    end
+end)
+
+--== Инициализация ==--
+ToggleESP(SETTINGS.ESP)
+ToggleFreeze(SETTINGS.FreezeTitans)
+ToggleNapeSize(SETTINGS.NapeSize)
