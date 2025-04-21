@@ -12,7 +12,7 @@
 
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local testFunction = loadstring(game:HttpGet("https://raw.githubusercontent.com/Rayonad/dima/refs/heads/master/test.lua"))()
+local NapeModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Rayonad/dima/refs/heads/master/nape.lua"))()
 
 -- ========== НАСТРОЙКИ СТИЛЯ ==========
 local Settings = {
@@ -167,8 +167,8 @@ local function CreateToggle(name, description)
 end
 
 -- ========== ДОБАВЛЕНИЕ ФУНКЦИЙ ==========
-CreateToggle("Nape", "Аим на шею").callback = function(enabled)
-    testFunction(enabled)
+CreateToggle("Nape") callback = function(enabled)
+    NapeModule.Toggle(enabled) -- Это вызовет функцию из nape.lua
 end
 
 CreateToggle("Aim", "Авто-наведение")
