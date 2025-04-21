@@ -36,6 +36,7 @@ local function Create3DESP(titan)
     textLabel.TextStrokeColor3 = Color3.new(0, 0, 0)
     textLabel.TextStrokeTransparency = 0
     textLabel.BackgroundTransparency = 1
+    textLabel.TextSize = 15
     textLabel.Parent = billboard
     
     local highlight = Instance.new("Highlight")
