@@ -12,18 +12,19 @@
 
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local testFunction = loadstring(game:HttpGet("https://raw.githubusercontent.com/Rayonad/dima/refs/heads/master/test.lua"))()
 
 -- ========== НАСТРОЙКИ СТИЛЯ ==========
 local Settings = {
-    MainColor = Color3.fromRGB(40, 40, 40),     -- Основной цвет фона
-    SecondaryColor = Color3.fromRGB(30, 30, 30), -- Вторичный цвет
-    AccentColor = Color3.fromRGB(138, 43, 226),  -- Фиолетовый акцент (Purple)
-    TextColor = Color3.fromRGB(255, 255, 255),   -- Белый текст
-    TextSize = 14,                               -- Размер текста
-    Font = Enum.Font.Gotham,                     -- Шрифт
-    ToggleColor = Color3.fromRGB(76, 209, 55),   -- Зелёный для включенного состояния
-    WindowSize = Vector2.new(300, 400),          -- Размер окна
-    Padding = 10                                 -- Отступы
+    MainColor = Color3.fromRGB(40, 40, 40),
+    SecondaryColor = Color3.fromRGB(30, 30, 30),
+    AccentColor = Color3.fromRGB(138, 43, 226),
+    TextColor = Color3.fromRGB(255, 255, 255),
+    TextSize = 14,
+    Font = Enum.Font.Gotham,
+    ToggleColor = Color3.fromRGB(76, 209, 55),
+    WindowSize = Vector2.new(300, 400),
+    Padding = 10
 }
 
 -- ========== СОЗДАНИЕ ГЛАВНОГО ОКНА ==========
@@ -85,14 +86,14 @@ local function CreateToggle(name, description)
     ToggleFrame.Size = UDim2.new(1, 0, 0, 30)
     ToggleFrame.BackgroundTransparency = 1
     ToggleFrame.Parent = FunctionsFrame
-    
+
     local ToggleButton = Instance.new("TextButton")
     ToggleButton.Name = "ToggleButton"
     ToggleButton.Size = UDim2.new(1, 0, 1, 0)
     ToggleButton.BackgroundTransparency = 1
     ToggleButton.Text = ""
     ToggleButton.Parent = ToggleFrame
-    
+
     local ToggleText = Instance.new("TextLabel")
     ToggleText.Name = "ToggleText"
     ToggleText.Size = UDim2.new(0.7, 0, 1, 0)
@@ -104,11 +105,11 @@ local function CreateToggle(name, description)
     ToggleText.TextXAlignment = Enum.TextXAlignment.Left
     ToggleText.Font = Settings.Font
     ToggleText.Parent = ToggleFrame
-    
+
     if description then
         ToggleText.Text = name .. " (" .. description .. ")"
     end
-    
+
     local ToggleBox = Instance.new("Frame")
     ToggleBox.Name = "ToggleBox"
     ToggleBox.Size = UDim2.new(0, 20, 0, 20)
@@ -116,11 +117,11 @@ local function CreateToggle(name, description)
     ToggleBox.BackgroundColor3 = Settings.SecondaryColor
     ToggleBox.BorderSizePixel = 0
     ToggleBox.Parent = ToggleFrame
-    
+
     local ToggleBoxCorner = Instance.new("UICorner")
     ToggleBoxCorner.CornerRadius = UDim.new(0, 4)
     ToggleBoxCorner.Parent = ToggleBox
-    
+
     local ToggleState = Instance.new("Frame")
     ToggleState.Name = "ToggleState"
     ToggleState.Size = UDim2.new(0, 16, 0, 16)
@@ -128,11 +129,11 @@ local function CreateToggle(name, description)
     ToggleState.BackgroundColor3 = Settings.SecondaryColor
     ToggleState.BorderSizePixel = 0
     ToggleState.Parent = ToggleBox
-    
+
     local ToggleStateCorner = Instance.new("UICorner")
     ToggleStateCorner.CornerRadius = UDim.new(0, 4)
     ToggleStateCorner.Parent = ToggleState
-    
+
     local toggle = {
         enabled = false,
         frame = ToggleFrame,
@@ -140,20 +141,19 @@ local function CreateToggle(name, description)
         state = ToggleState,
         callback = nil
     }
-    
+
     library.toggles[name] = toggle
-    
+
     local function UpdateToggle()
         if toggle.enabled then
             toggle.state.BackgroundColor3 = Settings.ToggleColor
-            -- Фиолетовая подсветка текста при включении
             ToggleText.TextColor3 = Settings.AccentColor
         else
             toggle.state.BackgroundColor3 = Settings.SecondaryColor
             ToggleText.TextColor3 = Settings.TextColor
         end
     end
-    
+
     ToggleButton.MouseButton1Click:Connect(function()
         toggle.enabled = not toggle.enabled
         UpdateToggle()
@@ -161,20 +161,21 @@ local function CreateToggle(name, description)
             toggle.callback(toggle.enabled)
         end
     end)
-    
+
     UpdateToggle()
     return toggle
 end
 
 -- ========== ДОБАВЛЕНИЕ ФУНКЦИЙ ==========
--- Здесь добавляем функции (чекбоксы) в меню
-CreateToggle("Nape") -- Автоматический удар в шею
-CreateToggle("Aim") -- Автоматическое прицеливание
-CreateToggle("Safe") -- Меньше детектится античитом
-CreateToggle("ESP") -- Показывает игроков через стены
+CreateToggle("Nape", "Аим на шею").callback = function(enabled)
+    testFunction(enabled)
+end
+
+CreateToggle("Aim", "Авто-наведение")
+CreateToggle("Safe", "Обход античита")
+CreateToggle("ESP", "Видеть игроков")
 
 -- ========== ЗАКРЫТИЕ МЕНЮ ==========
--- Закрытие меню по клавише (например, RightControl)
 local closed = false
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == Enum.KeyCode.RightShift then
