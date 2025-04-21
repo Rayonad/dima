@@ -3,7 +3,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 -- Размер, который будет устанавливаться
-local NEW_SIZE = Vector3.new(2048, 2048, 2048)
+local NEW_SIZE = Vector3.new(500, 500, 500)
 
 -- Функция для увеличения шеек
 local function SetAllNapeSizes()
