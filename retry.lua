@@ -63,7 +63,7 @@ local function checkLoop()
     end
 end
 
--- Переключение по F2
+-- Обработка нажатия клавиши активации
 UIS.InputBegan:Connect(function(input)
     if input.KeyCode == settings.keybind then
         settings.active = not settings.active
@@ -75,4 +75,18 @@ UIS.InputBegan:Connect(function(input)
     end
 end)
 
-print("Скрипт готов. Нажмите F2 для активации.")
+-- Возвращаем функции для управления через GUI
+return {
+    Enable = function()
+        if settings.active then return end
+        settings.active = true
+        print("Автокликер Retry: ВКЛ")
+        task.spawn(checkLoop)
+    end,
+
+    Disable = function()
+        if not settings.active then return end
+        settings.active = false
+        print("Автокликер Retry: ВЫКЛ")
+    end
+}
