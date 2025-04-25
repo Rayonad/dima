@@ -79,10 +79,71 @@ local autoFarmButton = createButton("Auto Farm", 50, mainFrame)
 local autoRetryButton = createButton("Auto Retry", 100, mainFrame)
 local addFunctionButton = createButton("Add Function", 250, mainFrame)
 
--- Интеграция retry.lua
-local retryModule = require(game:GetService("ReplicatedStorage"):WaitForChild("retry")) -- Путь, куда помещен retry.lua
+-- Настройки для Auto Retry
+local offsetLabel = Instance.new("TextLabel")
+offsetLabel.Name = "OffsetLabel"
+offsetLabel.Text = "Y Offset: " .. settings.retryYOffset
+offsetLabel.Size = UDim2.new(0.6, 0, 0, 20)
+offsetLabel.Position = UDim2.new(0.1, 0, 0, 150)
+offsetLabel.BackgroundTransparency = 1
+offsetLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+offsetLabel.Font = Enum.Font.Gotham
+offsetLabel.TextSize = 12
+offsetLabel.Parent = mainFrame
+
+local offsetPlus = Instance.new("TextButton")
+offsetPlus.Name = "OffsetPlus"
+offsetPlus.Text = "+"
+offsetPlus.Size = UDim2.new(0, 30, 0, 20)
+offsetPlus.Position = UDim2.new(0.7, 0, 0, 150)
+offsetPlus.BackgroundColor3 = Color3.fromRGB(70, 30, 90)
+offsetPlus.TextColor3 = Color3.fromRGB(255, 255, 255)
+offsetPlus.Font = Enum.Font.GothamBold
+offsetPlus.TextSize = 14
+offsetPlus.Parent = mainFrame
+
+local offsetMinus = Instance.new("TextButton")
+offsetMinus.Name = "OffsetMinus"
+offsetMinus.Text = "-"
+offsetMinus.Size = UDim2.new(0, 30, 0, 20)
+offsetMinus.Position = UDim2.new(0.85, 0, 0, 150)
+offsetMinus.BackgroundColor3 = Color3.fromRGB(70, 30, 90)
+offsetMinus.TextColor3 = Color3.fromRGB(255, 255, 255)
+offsetMinus.Font = Enum.Font.GothamBold
+offsetMinus.TextSize = 14
+offsetMinus.Parent = mainFrame
 
 -- Функционал Auto Retry
+local function findRetryButton()
+    local rewardsGui = player.PlayerGui:FindFirstChild("Interface")
+                  and player.PlayerGui.Interface:FindFirstChild("Rewards")
+    if not rewardsGui or not rewardsGui.Visible then return nil end
+    
+    return rewardsGui:FindFirstChild("Main")
+           and rewardsGui.Main:FindFirstChild("Info")
+           and rewardsGui.Main.Info:FindFirstChild("Main")
+           and rewardsGui.Main.Info.Main:FindFirstChild("Buttons")
+           and rewardsGui.Main.Info.Main.Buttons:FindFirstChild("Retry")
+end
+
+local function physicalClick(button)
+    local pos = button.AbsolutePosition
+    local size = button.AbsoluteSize
+    local clickX = pos.X + size.X / 2
+    local clickY = pos.Y + size.Y / 2 + settings.retryYOffset
+    
+    VirtualInput:SendMouseMoveEvent(clickX, clickY, game)
+    task.wait(0.05)
+    VirtualInput:SendMouseButtonEvent(clickX, clickY, 0, true, game, 1)
+    task.wait(0.1)
+    VirtualInput:SendMouseButtonEvent(clickX, clickY, 0, false, game, 1)
+    
+    if settings.debug then
+        print(("Retry clicked at X:%.1f Y:%.1f"):format(clickX, clickY))
+    end
+end
+
+local retryConnection
 local function toggleAutoRetry()
     settings.autoRetry = not settings.autoRetry
     autoRetryButton.Status.Text = settings.autoRetry and "ON" or "OFF"
@@ -91,8 +152,16 @@ local function toggleAutoRetry()
         or Color3.fromRGB(255, 100, 100)
     
     if settings.autoRetry then
-        -- Запуск Auto Retry
-        retryModule.autoRetry() -- Вызов функции autoRetry из retry.lua
+        retryConnection = game:GetService("RunService").Heartbeat:Connect(function()
+            local button = findRetryButton()
+            if button then
+                physicalClick(button)
+                task.wait(1)
+            end
+        end)
+    elseif retryConnection then
+        retryConnection:Disconnect()
+        retryConnection = nil
     end
 end
 
@@ -108,8 +177,26 @@ end)
 
 autoRetryButton.MouseButton1Click:Connect(toggleAutoRetry)
 
+offsetPlus.MouseButton1Click:Connect(function()
+    settings.retryYOffset = settings.retryYOffset + 5
+    offsetLabel.Text = "Y Offset: " .. settings.retryYOffset
+end)
+
+offsetMinus.MouseButton1Click:Connect(function()
+    settings.retryYOffset = math.max(0, settings.retryYOffset - 5)
+    offsetLabel.Text = "Y Offset: " .. settings.retryYOffset
+end)
+
+addFunctionButton.MouseButton1Click:Connect(function()
+    -- Здесь будет функционал добавления новых функций
+    print("Function addition coming soon!")
+end)
+
 closeButton.MouseButton1Click:Connect(function()
     screenGui:Destroy()
+    if retryConnection then
+        retryConnection:Disconnect()
+    end
 end)
 
 -- Делаем окно перетаскиваемым
